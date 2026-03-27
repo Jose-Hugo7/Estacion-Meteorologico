@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estación Meteorológica</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --border: #2a2a2a;
+    --border-bright: #3a3a3a;
+    --orange: #ff8c00;
+    --green: #00e676;
+    --cyan: #00bcd4;
+    --yellow: #ffd600;
+    --white: #e0e0e0;
+    --red: #ff3d00;
+    --blue: #40c4ff;
+    --purple: #ce93d8;
+    --dim: #444;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Orbitron', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #050505;
+    color: var(--white);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px;
+  }
+
+  /* ── BEZEL ── */
+  .bezel {
+    background: linear-gradient(145deg, #1c1c1c, #0d0d0d);
+    border: 3px solid #2c2c2c;
+    border-radius: 16px;
+    padding: 14px;
+    width: 100%;
+    max-width: 980px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    margin-bottom: 10px;
+  }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-label { font-size: 9px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+  .topbar-date { font-family: var(--display); font-size: 22px; color: var(--green); letter-spacing: 3px; }
+  .topbar-center { text-align: center; }
+  .topbar-time { font-family: var(--display); font-size: 36px; color: var(--green); letter-spacing: 4px; line-height: 1; }
+  .topbar-day { font-size: 11px; color: var(--cyan); letter-spacing: 3px; margin-top: 2px; }
+  .topbar-right { text-align: right; }
+  .station-name { font-family: var(--display); font-size: 12px; color: var(--orange); letter-spacing: 2px; }
+  .moon-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .moon-icon { font-size: 20px; }
+  .update-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    position: relative;
+  }
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── BIG NUMBER ── */
+  .big-num {
+    font-family: var(--display);
+    line-height: 1;
+    font-weight: 900;
+  }
+  .unit {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--dim);
+    vertical-align: super;
+    margin-left: 2px;
+  }
+
+  /* ── WIND COMPASS ── */
+  .compass-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .compass {
+    width: 120px;
+    height: 120px;
+    position: relative;
+  }
+  .compass svg { width: 100%; height: 100%; }
+  .wind-data { width: 100%; }
+  .wind-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+  .wind-label { font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+  .wind-val { font-family: var(--display); font-size: 26px; color: var(--yellow); font-weight: 900; }
+  .wind-unit { font-size: 11px; color: var(--dim); }
+
+  /* ── WEATHER ICON ── */
+  .weather-icon-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .wx-icon { font-size: 52px; line-height: 1; }
+  .wx-desc { font-size: 10px; color: var(--cyan); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* ── BARO PANEL ── */
+  .baro-num { font-family: var(--display); font-size: 30px; color: var(--cyan); font-weight: 900; line-height: 1; }
+  .baro-unit { font-size: 11px; color: var(--dim); margin-left: 4px; }
+  .trend-arrow { font-size: 18px; margin-left: 6px; }
+
+  /* ── RAIN ── */
+  .rain-bars { display: flex; align-items: flex-end; gap: 3px; height: 40px; margin: 8px 0; }
+  .rain-bar { flex: 1; background: var(--cyan); border-radius: 2px 2px 0 0; opacity: 0.8; min-height: 3px; }
+  .rain-num { font-family: var(--display); font-size: 28px; color: var(--cyan); font-weight: 900; }
+
+  /* ── TEMP & HUMIDITY (right panels) ── */
+  .sensor-row { margin-bottom: 10px; }
+  .sensor-label { font-size: 9px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+  .temp-out { font-family: var(--display); font-size: 44px; color: var(--orange); font-weight: 900; line-height: 1; }
+  .hum-out  { font-family: var(--display); font-size: 40px; color: var(--orange); font-weight: 900; line-height: 1; }
+  .temp-in  { font-family: var(--display); font-size: 36px; color: var(--white); font-weight: 700; line-height: 1; }
+  .hum-in   { font-family: var(--display); font-size: 34px; color: var(--white); font-weight: 700; line-height: 1; }
+
+  .divider-h { height: 1px; background: var(--border); margin: 8px 0; }
+
+  /* ── CHART SECTION ── */
+  .chart-section {
+    grid-column: 1 / -1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .chart-controls { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+  .chart-btn {
+    background: none;
+    border: 1px solid var(--border-bright);
+    color: var(--dim);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-family: var(--mono);
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .chart-btn:hover, .chart-btn.active { border-color: var(--cyan); color: var(--cyan); }
+  .chart-select {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    color: var(--white);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-family: var(--mono);
+    margin-left: auto;
+  }
+  .chart-wrap { position: relative; height: 160px; }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--dim);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .status-ok { color: var(--green); }
+  .status-item { display: flex; align-items: center; gap: 5px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+    .chart-section { grid-column: 1 / -1; }
+    .topbar-time { font-size: 26px; }
+    .topbar-date { font-size: 16px; }
+  }
+  @media (max-width: 480px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bezel">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-label">Fecha</span>
+      <span class="topbar-date" id="disp-date">--/--</span>
+    </div>
+    <div class="topbar-center">
+      <div class="topbar-time" id="disp-time">--:--:--</div>
+      <div class="topbar-day" id="disp-day">CARGANDO</div>
+    </div>
+    <div class="topbar-right">
+      <div class="station-name">ESTACIÓN MX · GRO</div>
+      <div class="moon-row">
+        <span class="moon-icon" id="moon-icon">🌕</span>
+        <span style="font-size:9px; color:var(--dim)" id="moon-label">FASE LUNAR</span>
+        <span class="update-dot" id="dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- WIND -->
+    <div class="panel">
+      <div class="panel-title">🌬 Viento</div>
+      <div class="compass-wrap">
+        <div class="compass">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="56" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+            <circle cx="60" cy="60" r="42" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+            <text x="60" y="13" text-anchor="middle" fill="#00e676" font-size="10" font-family="Share Tech Mono">N</text>
+            <text x="60" y="113" text-anchor="middle" fill="#666" font-size="10" font-family="Share Tech Mono">S</text>
+            <text x="8" y="64" text-anchor="middle" fill="#666" font-size="10" font-family="Share Tech Mono">W</text>
+            <text x="112" y="64" text-anchor="middle" fill="#666" font-size="10" font-family="Share Tech Mono">E</text>
+            <text x="92" y="24" text-anchor="middle" fill="#444" font-size="8" font-family="Share Tech Mono">NE</text>
+            <text x="92" y="102" text-anchor="middle" fill="#444" font-size="8" font-family="Share Tech Mono">SE</text>
+            <text x="28" y="24" text-anchor="middle" fill="#444" font-size="8" font-family="Share Tech Mono">NW</text>
+            <text x="28" y="102" text-anchor="middle" fill="#444" font-size="8" font-family="Share Tech Mono">SW</text>
+            <!-- tick marks -->
+            <line x1="60" y1="6" x2="60" y2="14" stroke="#333" stroke-width="1"/>
+            <line x1="60" y1="106" x2="60" y2="114" stroke="#333" stroke-width="1"/>
+            <line x1="6" y1="60" x2="14" y2="60" stroke="#333" stroke-width="1"/>
+            <line x1="106" y1="60" x2="114" y2="60" stroke="#333" stroke-width="1"/>
+            <!-- arrow -->
+            <g id="wind-arrow" transform="rotate(0 60 60)">
+              <polygon points="60,18 55,60 65,60" fill="#00e676" opacity="0.9"/>
+              <polygon points="60,100 55,60 65,60" fill="#333"/>
+            </g>
+            <circle cx="60" cy="60" r="5" fill="#1a1a1a" stroke="#00e676" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="wind-data">
+          <div class="wind-row">
+            <div>
+              <div class="wind-label">DIRECCIÓN</div>
+              <div style="font-family:var(--display); font-size:18px; color:var(--green)" id="wind-dir-txt">--</div>
+            </div>
+            <div style="text-align:right">
+              <div class="wind-label">RÁFAGA</div>
+              <span class="big-num" style="font-size:22px; color:var(--yellow)" id="wind-gust">--</span>
+              <span class="unit">m/s</span>
+            </div>
+          </div>
+          <div class="wind-row">
+            <div class="wind-label">PROMEDIO</div>
+            <div>
+              <span class="wind-val" id="wind-spd">--</span>
+              <span class="wind-unit">m/s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEATHER ICON + BARO + RAIN (center) -->
+    <div class="panel" style="display:flex; flex-direction:column; gap:8px;">
+      <div class="panel-title">☁ Condición</div>
+      <div class="weather-icon-area">
+        <div class="wx-icon" id="wx-icon">⛅</div>
+        <div class="wx-desc" id="wx-desc">Cargando...</div>
+      </div>
+      <div class="divider-h"></div>
+      <div class="panel-title">🧭 Presión Baro.</div>
+      <div>
+        <span class="baro-num" id="baro">----.-</span>
+        <span class="baro-unit">hPa</span>
+        <span class="trend-arrow" id="baro-trend">→</span>
+      </div>
+      <div class="divider-h"></div>
+      <div class="panel-title">🌧 Lluvia</div>
+      <div class="rain-bars" id="rain-bars">
+        <div class="rain-bar" style="height:20%"></div>
+        <div class="rain-bar" style="height:40%"></div>
+        <div class="rain-bar" style="height:30%"></div>
+        <div class="rain-bar" style="height:70%"></div>
+        <div class="rain-bar" style="height:50%"></div>
+        <div class="rain-bar" style="height:90%"></div>
+        <div class="rain-bar" style="height:60%"></div>
+      </div>
+      <div>
+        <span class="rain-num" id="rain">--.-</span>
+        <span class="baro-unit">mm total</span>
+      </div>
+    </div>
+
+    <!-- TEMP & HUMIDITY -->
+    <div class="panel">
+      <div class="panel-title">📡 Sensor Exterior</div>
+      <div class="sensor-row">
+        <div class="sensor-label">Temperatura °C</div>
+        <div>
+          <span class="temp-out" id="temp-out">--.-</span>
+          <span class="unit" style="font-size:16px; color:var(--orange)">°C</span>
+          <span style="font-size:18px; margin-left:6px" id="temp-arrow">→</span>
+        </div>
+      </div>
+      <div class="sensor-row">
+        <div class="sensor-label">Humedad %rH</div>
+        <div>
+          <span class="hum-out" id="hum-out">--</span>
+          <span class="unit" style="font-size:14px; color:var(--orange)">%</span>
+          <span style="font-size:18px; margin-left:6px" id="hum-arrow">→</span>
+        </div>
+      </div>
+      <div class="divider-h"></div>
+      <div class="panel-title" style="color:var(--dim); margin-top:4px">📍 Índices</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px">
+        <div>
+          <div class="sensor-label">Sens. Térmica</div>
+          <span style="font-family:var(--display); font-size:20px; color:var(--white)" id="feels">--</span>
+          <span style="font-size:10px; color:var(--dim)">°C</span>
+        </div>
+        <div>
+          <div class="sensor-label">Punto Rocío</div>
+          <span style="font-family:var(--display); font-size:20px; color:var(--blue)" id="dewpoint">--</span>
+          <span style="font-size:10px; color:var(--dim)">°C</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-section">
+      <div class="chart-controls">
+        <span style="font-size:10px; color:var(--dim); letter-spacing:2px; text-transform:uppercase">Historial</span>
+        <button class="chart-btn active" onclick="setPeriod(1,this)">HOY</button>
+        <button class="chart-btn" onclick="setPeriod(7,this)">7D</button>
+        <button class="chart-btn" onclick="setPeriod(30,this)">30D</button>
+        <select class="chart-select" id="field-select" onchange="renderChart()">
+          <option value="temp">Temperatura</option>
+          <option value="hum">Humedad</option>
+          <option value="baro">Presión</option>
+          <option value="wind">Viento</option>
+          <option value="rain">Lluvia</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="main-chart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <div class="status-item">
+      <span class="update-dot" id="dot2"></span>
+      <span class="status-ok">ONLINE</span>
+    </div>
+    <div class="status-item">Canal: <span style="color:var(--cyan); margin-left:4px">3315205</span></div>
+    <div class="status-item">Actualización: <span style="color:var(--white); margin-left:4px" id="last-update">--</span></div>
+    <div class="status-item">Lecturas: <span style="color:var(--white); margin-left:4px" id="total-reads">--</span></div>
+    <div class="status-item" id="signal-info">Señal: <span style="color:var(--green); margin-left:4px">ThingSpeak API</span></div>
+  </div>
+
+</div><!-- end bezel -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── CONFIG ──────────────────────────────────────────
+const CHANNEL_ID = '3315205';
+const API_KEY    = 'T7L0HEUX8140WICI';
+
+// Map ThingSpeak fields to sensors (ajusta si tus campos son distintos)
+// field1=Temperatura, field2=Humedad, field3=VelocidadViento,
+// field4=Lluvia, field5=Presion, field6=DireccionViento
+const FIELD = { temp:'field1', hum:'field2', wind:'field3', rain:'field4', baro:'field5', dir:'field6' };
+
+// ── STATE ────────────────────────────────────────────
+let allFeeds = [];
+let period   = 1;
+let mainChart;
+
+// ── CLOCK ────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const days = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  document.getElementById('disp-time').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('disp-date').textContent =
+    String(now.getDate()).padStart(2,'0') + '/' +
+    String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('disp-day').textContent = days[now.getDay()];
+  moonPhase(now);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function moonPhase(d) {
+  const lunar = 29.53058867;
+  const known = new Date(2000,0,6);
+  const diff  = (d - known) / 86400000;
+  const phase = ((diff % lunar) + lunar) % lunar;
+  const icons = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌑'];
+  const idx   = Math.round(phase / (lunar/8)) % 8;
+  document.getElementById('moon-icon').textContent = icons[idx];
+}
+
+// ── FETCH ─────────────────────────────────────────────
+async function fetchData() {
+  try {
+    const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${API_KEY}&results=8000`;
+    const r   = await fetch(url);
+    const d   = await r.json();
+    if (!d.feeds || !d.feeds.length) return;
+
+    allFeeds = d.feeds.filter(f => f.created_at);
+    renderAll();
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('es-MX');
+    document.getElementById('total-reads').textContent = allFeeds.length + ' pts';
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function val(feed, field) { return parseFloat(feed[field]); }
+function last(field) {
+  for (let i = allFeeds.length-1; i >= 0; i--) {
+    const v = val(allFeeds[i], field);
+    if (!isNaN(v)) return v;
+  }
+  return null;
+}
+function prev(field, n=5) {
+  let count = 0;
+  for (let i = allFeeds.length-1; i >= 0; i--) {
+    const v = val(allFeeds[i], field);
+    if (!isNaN(v)) { count++; if (count === n) return v; }
+  }
+  return null;
+}
+
+function trendArrow(curr, old) {
+  if (old === null || curr === null) return '→';
+  if (curr > old + 0.5) return '↑';
+  if (curr < old - 0.5) return '↓';
+  return '→';
+}
+
+function dirName(deg) {
+  if (deg === null) return '--';
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+  return dirs[Math.round(deg/22.5) % 16];
+}
+
+function weatherIcon(temp, hum, rain) {
+  if (rain !== null && rain > 2) return ['🌧','LLUVIA'];
+  if (hum !== null && hum > 85)  return ['🌫','NEBLINA'];
+  if (temp !== null && temp > 32) return ['☀️','DESPEJADO · CALOR'];
+  if (hum !== null && hum > 65)  return ['⛅','PARCIALMENTE NUBLADO'];
+  return ['🌤','MAYORMENTE DESPEJADO'];
+}
+
+function dewPoint(t, h) {
+  if (t===null||h===null) return null;
+  const a=17.27, b=237.7;
+  const alpha = ((a*t)/(b+t)) + Math.log(h/100);
+  return (b*alpha/(a-alpha)).toFixed(1);
+}
+function feelsLike(t, h, w) {
+  if (t===null) return null;
+  if (t > 27 && h !== null) {
+    const hi = -8.78469475556 + 1.61139411*t + 2.33854883889*h
+      - 0.14611605*t*h - 0.012308094*t*t - 0.0164248277778*h*h
+      + 0.002211732*t*t*h + 0.00072546*t*h*h - 0.000003582*t*t*h*h;
+    return hi.toFixed(1);
+  }
+  if (w !== null && w > 4.8 && t < 10) {
+    const wc = 13.12 + 0.6215*t - 11.37*Math.pow(w*3.6,0.16) + 0.3965*t*Math.pow(w*3.6,0.16);
+    return wc.toFixed(1);
+  }
+  return t !== null ? t.toFixed(1) : null;
+}
+
+function renderAll() {
+  if (!allFeeds.length) return;
+
+  const T  = last(FIELD.temp);
+  const H  = last(FIELD.hum);
+  const W  = last(FIELD.wind);
+  const R  = last(FIELD.rain);
+  const B  = last(FIELD.baro);
+  const D  = last(FIELD.dir);
+
+  const Told = prev(FIELD.temp);
+  const Hold = prev(FIELD.hum);
+  const Bold = prev(FIELD.baro);
+
+  // Temp & Hum
+  document.getElementById('temp-out').textContent  = T !== null ? T.toFixed(1) : '--.-';
+  document.getElementById('hum-out').textContent   = H !== null ? Math.round(H) : '--';
+  document.getElementById('temp-arrow').textContent = trendArrow(T, Told);
+  document.getElementById('hum-arrow').textContent  = trendArrow(H, Hold);
+
+  const dp = dewPoint(T,H);
+  const fl = feelsLike(T,H,W);
+  document.getElementById('dewpoint').textContent = dp !== null ? dp : '--';
+  document.getElementById('feels').textContent    = fl !== null ? fl : '--';
+
+  // Wind
+  document.getElementById('wind-spd').textContent  = W !== null ? W.toFixed(1) : '--';
+  document.getElementById('wind-gust').textContent = W !== null ? (W*1.3).toFixed(1) : '--';
+  document.getElementById('wind-dir-txt').textContent = dirName(D);
+  if (D !== null) {
+    document.getElementById('wind-arrow').setAttribute('transform',`rotate(${D} 60 60)`);
+  }
+
+  // Baro
+  document.getElementById('baro').textContent = B !== null ? B.toFixed(1) : '---.-';
+  document.getElementById('baro-trend').textContent = trendArrow(B, Bold);
+
+  // Rain
+  document.getElementById('rain').textContent = R !== null ? R.toFixed(1) : '--.-';
+  updateRainBars();
+
+  // Weather icon
+  const [icon, desc] = weatherIcon(T, H, R);
+  document.getElementById('wx-icon').textContent = icon;
+  document.getElementById('wx-desc').textContent = desc;
+
+  renderChart();
+}
+
+function updateRainBars() {
+  const recent = allFeeds.slice(-7);
+  const vals   = recent.map(f => parseFloat(f[FIELD.rain]) || 0);
+  const mx     = Math.max(...vals, 1);
+  const bars   = document.querySelectorAll('.rain-bar');
+  bars.forEach((b, i) => {
+    b.style.height = ((vals[i] || 0) / mx * 90 + 5) + '%';
+  });
+}
+
+// ── CHART ────────────────────────────────────────────
+const CHART_CFG = {
+  temp: { field: FIELD.temp, label:'Temperatura (°C)', color:'#ff8c00' },
+  hum:  { field: FIELD.hum,  label:'Humedad (%)',       color:'#40c4ff' },
+  baro: { field: FIELD.baro, label:'Presión (hPa)',     color:'#00bcd4' },
+  wind: { field: FIELD.wind, label:'Viento (m/s)',      color:'#ffd600' },
+  rain: { field: FIELD.rain, label:'Lluvia (mm)',       color:'#29b6f6' },
+};
+
+function getFiltered() {
+  const cutoff = new Date(Date.now() - period * 86400000);
+  return allFeeds.filter(f => new Date(f.created_at) >= cutoff);
+}
+
+function renderChart() {
+  const key  = document.getElementById('field-select').value;
+  const cfg  = CHART_CFG[key];
+  const feeds = getFiltered();
+  const step = Math.max(1, Math.floor(feeds.length / 200));
+  const sampled = feeds.filter((_,i) => i % step === 0);
+
+  const labels = sampled.map(f => {
+    const d = new Date(f.created_at);
+    return d.toLocaleDateString('es-MX',{month:'short',day:'numeric'}) + ' ' +
+           d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  });
+  const data = sampled.map(f => parseFloat(f[cfg.field]) || null);
+
+  if (mainChart) mainChart.destroy();
+  const ctx = document.getElementById('main-chart').getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: cfg.label,
+        data,
+        borderColor: cfg.color,
+        backgroundColor: cfg.color + '18',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { labels: { color:'#888', font:{ family:'Share Tech Mono', size:10 }, boxWidth:12 } },
+        tooltip: { backgroundColor:'#1a1a1a', titleColor:'#aaa', bodyColor:'#fff',
+          titleFont:{family:'Share Tech Mono'}, bodyFont:{family:'Share Tech Mono'} }
+      },
+      scales: {
+        x: { ticks:{ color:'#444', font:{size:9,family:'Share Tech Mono'}, maxTicksLimit:8, maxRotation:0 },
+             grid:{ color:'rgba(255,255,255,0.04)' } },
+        y: { ticks:{ color:'#444', font:{size:9,family:'Share Tech Mono'} },
+             grid:{ color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function setPeriod(days, btn) {
+  period = days;
+  document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
+// ── INIT ─────────────────────────────────────────────
+fetchData();
+setInterval(fetchData, 60000); // refresca cada 60 s
+</script>
+</body>
+</html>
